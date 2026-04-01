@@ -4,6 +4,10 @@ import os
 import re
 import markdown
 
+from swb.core.logger import get_logger
+
+logger = get_logger("markdown")
+
 
 def parse_frontmatter(md_content):
     """
@@ -69,7 +73,7 @@ def discover_pages(project_root, exclude_dirs=None):
                         content = f.read()
                     _, metadata = parse_frontmatter(content)
                 except (OSError, UnicodeDecodeError) as e:
-                    print(f"Warning: Could not read {full_path}: {e}")
+                    logger.warning("Could not read %s: %s", full_path, e)
                     metadata = {}
 
                 relative_path = os.path.relpath(full_path, project_root)

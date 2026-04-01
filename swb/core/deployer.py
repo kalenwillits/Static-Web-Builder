@@ -6,6 +6,9 @@ import subprocess
 import sys
 
 from swb.core.config_manager import load_config
+from swb.core.logger import get_logger
+
+logger = get_logger("deployer")
 
 
 def check_firebase_cli():
@@ -77,8 +80,8 @@ def deploy_site(project_root, output_dir):
     # Generate firebase config files
     generate_firebase_json(output_dir, project_id=project_id)
 
-    print(f"Deploying to Firebase project: {project_id}")
-    print(f"Source directory: {output_dir}")
+    logger.info("Deploying to Firebase project: %s", project_id)
+    logger.info("Source directory: %s", output_dir)
 
     result = subprocess.run(
         ['firebase', 'deploy', '--only', 'hosting', '--project', project_id],
@@ -88,8 +91,8 @@ def deploy_site(project_root, output_dir):
     )
 
     if result.returncode != 0:
-        print(f"Deploy failed:\n{result.stderr}", file=sys.stderr)
+        logger.error("Deploy failed:\n%s", result.stderr)
         sys.exit(1)
 
-    print(result.stdout)
-    print("Deploy complete!")
+    logger.info(result.stdout)
+    logger.info("Deploy complete!")

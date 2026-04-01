@@ -37,3 +37,21 @@ This document records key design and implementation decisions made during develo
 **Decision:** Install a pre-commit hook that runs pytest and blocks commits with failing tests.
 
 **Rationale:** User requirement for TDD enforcement. Prevents broken code from being committed.
+
+## 2026-04-01: Structured Logging Over Print Statements
+
+**Decision:** Use Python's `logging` module with a centralized `swb.core.logger` module instead of bare `print()` for diagnostics.
+
+**Rationale:** Bare `print()` statements mixed with `except Exception: return {}` make it impossible for users to diagnose build/deploy failures. The logging system provides: (1) severity levels (DEBUG, INFO, WARNING, ERROR), (2) module-level loggers for targeted debugging, (3) a `--verbose` flag for detailed output, and (4) consistent formatting to stderr.
+
+## 2026-04-01: Specific Exception Types
+
+**Decision:** Replace bare `except Exception` with specific types (e.g., `yaml.YAMLError`, `OSError`, `UnicodeDecodeError`).
+
+**Rationale:** Catching `Exception` broadly silences bugs. Specific types ensure only expected failures are handled gracefully while unexpected errors propagate with full tracebacks for debugging.
+
+## 2026-04-01: Manual CLI Routing Over argparse Subparsers
+
+**Decision:** Use manual `sys.argv` inspection instead of argparse subparsers for CLI routing.
+
+**Rationale:** argparse subparsers reject unknown positional args (like `swb mysite`), making it impossible to have both subcommands (`build`, `deploy`, `config`) and a bare positional arg for project creation. Manual routing is simpler and more flexible for this use case.

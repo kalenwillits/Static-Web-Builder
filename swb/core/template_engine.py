@@ -5,6 +5,10 @@ from datetime import datetime
 from jinja2 import Environment, BaseLoader, TemplateError
 import yaml
 
+from swb.core.logger import get_logger
+
+logger = get_logger("template")
+
 
 def load_yaml_context(yaml_path):
     """Load a YAML context file. Returns empty dict if missing or empty."""
@@ -15,7 +19,7 @@ def load_yaml_context(yaml_path):
             data = yaml.safe_load(f)
             return data if data is not None else {}
     except (yaml.YAMLError, OSError) as e:
-        print(f"Warning: Could not load context from {yaml_path}: {e}")
+        logger.warning("Could not load context from %s: %s", yaml_path, e)
         return {}
 
 

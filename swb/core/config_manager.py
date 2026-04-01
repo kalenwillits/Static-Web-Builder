@@ -4,6 +4,10 @@ import os
 import sys
 import yaml
 
+from swb.core.logger import get_logger
+
+logger = get_logger("config")
+
 
 DEFAULT_CONFIG_DIR = os.path.expanduser("~/.swb")
 
@@ -25,7 +29,7 @@ def load_config(config_dir=None):
             data = yaml.safe_load(f)
             return data if data is not None else {}
     except (yaml.YAMLError, OSError) as e:
-        print(f"Warning: Could not load config from {config_path}: {e}")
+        logger.warning("Could not load config from %s: %s", config_path, e)
         return {}
 
 
