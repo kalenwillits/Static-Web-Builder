@@ -14,7 +14,8 @@ def load_yaml_context(yaml_path):
         with open(yaml_path, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f)
             return data if data is not None else {}
-    except Exception:
+    except (yaml.YAMLError, OSError) as e:
+        print(f"Warning: Could not load context from {yaml_path}: {e}")
         return {}
 
 

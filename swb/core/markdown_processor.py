@@ -68,7 +68,8 @@ def discover_pages(project_root, exclude_dirs=None):
                     with open(full_path, 'r', encoding='utf-8') as f:
                         content = f.read()
                     _, metadata = parse_frontmatter(content)
-                except Exception:
+                except (OSError, UnicodeDecodeError) as e:
+                    print(f"Warning: Could not read {full_path}: {e}")
                     metadata = {}
 
                 relative_path = os.path.relpath(full_path, project_root)
@@ -136,7 +137,7 @@ def get_page_title(page):
                 line = line.strip()
                 if line.startswith('# '):
                     return line[2:].strip()
-    except Exception:
+    except OSError:
         pass
 
     # Fallback to filename

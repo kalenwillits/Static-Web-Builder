@@ -33,7 +33,7 @@ def get_author_name():
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
-    except Exception:
+    except (OSError, subprocess.TimeoutExpired):
         pass
     return "Author Name"
 
