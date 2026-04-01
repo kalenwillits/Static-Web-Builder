@@ -1,0 +1,42 @@
+metadata:
+  title: "{site_title}"
+  author: "{author_name}"
+  description: "A website built with swb"
+  language: "en-US"
+
+# Default CSS applied to all pages
+default_css:
+  - "default.css"
+  - "custom.css"
+
+# Content discovery configuration
+discovery:
+  root: "."
+  exclude:
+    - ".git"
+    - ".venv"
+    - "venv"
+    - "node_modules"
+    - "__pycache__"
+    - "build"
+    - "dist"
+    - "context"
+    - "templates"
+    - "assets"
+
+  content_extensions:
+    - ".md"
+
+  image_extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".gif"
+    - ".svg"
+
+  css_extensions:
+    - ".css"
+
+# Build output
+output:
+  dir: "build"
