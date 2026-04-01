@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """CLI router for swb commands."""
 
-import argparse
 import os
 import sys
+
+from jinja2 import TemplateError
 
 from swb import __version__
 from swb.core.logger import setup_logger, get_logger
@@ -37,7 +38,7 @@ def _cmd_build(project_dir):
 
     import yaml
     with open(os.path.join(project_dir, 'site.yaml'), 'r') as f:
-        site_config = yaml.safe_load(f)
+        site_config = yaml.safe_load(f) or {}
 
     output_dir = os.path.join(
         project_dir,
@@ -47,7 +48,7 @@ def _cmd_build(project_dir):
     try:
         build_site(project_dir, output_dir)
         logger.info("Build complete: %s/", output_dir)
-    except (FileNotFoundError, ValueError) as e:
+    except (FileNotFoundError, ValueError, TemplateError) as e:
         logger.error("Build failed: %s", e)
         sys.exit(1)
 
@@ -64,7 +65,7 @@ def _cmd_deploy(project_dir):
 
     import yaml
     with open(os.path.join(project_dir, 'site.yaml'), 'r') as f:
-        site_config = yaml.safe_load(f)
+        site_config = yaml.safe_load(f) or {}
 
     output_dir = os.path.join(
         project_dir,
@@ -76,7 +77,11 @@ def _cmd_deploy(project_dir):
         logger.info("Run 'swb build' first.")
         sys.exit(1)
 
-    deploy_site(project_dir, output_dir)
+    try:
+        deploy_site(project_dir, output_dir)
+    except RuntimeError as e:
+        logger.error("%s", e)
+        sys.exit(1)
 
 
 def main():

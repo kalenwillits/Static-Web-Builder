@@ -84,9 +84,6 @@ def create_new_project(project_path):
         '{author_name}': author_name,
     }
 
-    # Create .swb marker
-    (path / ".swb").write_text(f"# swb project: {project_name}\n")
-
     # Copy and populate site.yaml
     site_yaml_content = (template_dir / "site.yaml").read_text()
     for var, value in template_vars.items():
@@ -109,6 +106,10 @@ def create_new_project(project_path):
     css_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(resources_dir / "default.css", css_dir / "default.css")
     (css_dir / "custom.css").write_text("/* Custom CSS for your site */\n")
+
+    # Create .swb marker last — ensures partial failures don't leave
+    # a marker file without a complete project
+    (path / ".swb").write_text(f"# swb project: {project_name}\n")
 
     print(f"Created new swb project: {project_name}")
     print(f"  Directory: {path}")

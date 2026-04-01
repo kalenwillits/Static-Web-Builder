@@ -55,3 +55,19 @@ This document records key design and implementation decisions made during develo
 **Decision:** Use manual `sys.argv` inspection instead of argparse subparsers for CLI routing.
 
 **Rationale:** argparse subparsers reject unknown positional args (like `swb mysite`), making it impossible to have both subcommands (`build`, `deploy`, `config`) and a bare positional arg for project creation. Manual routing is simpler and more flexible for this use case.
+
+## 2026-04-01: Peer Review Fixes
+
+**Decision:** Address critical findings from agent-based peer review.
+
+**Changes made:**
+1. Config wizard now merges into existing config (prevents data loss of unknown keys)
+2. Config wizard warns on empty Firebase project ID instead of silently saving
+3. `deploy_site` raises `RuntimeError` instead of `sys.exit(1)` — keeps it testable/composable
+4. `deploy_site` now has 5-minute timeout on `firebase deploy` subprocess
+5. `.swb` marker file created last in scaffolding — prevents unrecoverable partial state
+6. CLI catches `TemplateError` from build pipeline for clean error messages
+7. CLI guards against `None` from empty `site.yaml` files
+8. `.firebaserc` is no longer overwritten if it already exists
+9. `save_config` now has error handling for write failures
+10. Added 5 integration tests covering create-then-build pipeline

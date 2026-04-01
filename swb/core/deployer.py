@@ -3,12 +3,13 @@
 import json
 import os
 import subprocess
-import sys
 
 from swb.core.config_manager import load_config
 from swb.core.logger import get_logger
 
 logger = get_logger("deployer")
+
+DEPLOY_TIMEOUT = 300  # 5 minutes
 
 
 def check_firebase_cli():
@@ -26,7 +27,7 @@ def check_firebase_cli():
 def generate_firebase_json(output_dir, project_id=None):
     """Generate firebase.json and .firebaserc in the output directory.
 
-    Does not overwrite existing firebase.json.
+    Does not overwrite existing files.
     """
     firebase_json_path = os.path.join(output_dir, "firebase.json")
     if not os.path.exists(firebase_json_path):
@@ -49,9 +50,10 @@ def generate_firebase_json(output_dir, project_id=None):
 
     if project_id:
         firebaserc_path = os.path.join(output_dir, ".firebaserc")
-        rc = {"projects": {"default": project_id}}
-        with open(firebaserc_path, 'w') as f:
-            json.dump(rc, f, indent=2)
+        if not os.path.exists(firebaserc_path):
+            rc = {"projects": {"default": project_id}}
+            with open(firebaserc_path, 'w') as f:
+                json.dump(rc, f, indent=2)
 
 
 def deploy_site(project_root, output_dir):
@@ -62,7 +64,8 @@ def deploy_site(project_root, output_dir):
         output_dir: Directory containing built HTML files
 
     Raises:
-        RuntimeError: If Firebase CLI is not installed or no project configured
+        RuntimeError: If Firebase CLI is not installed, no project configured,
+                      or the deploy command fails.
     """
     if not check_firebase_cli():
         raise RuntimeError(
@@ -83,16 +86,22 @@ def deploy_site(project_root, output_dir):
     logger.info("Deploying to Firebase project: %s", project_id)
     logger.info("Source directory: %s", output_dir)
 
-    result = subprocess.run(
-        ['firebase', 'deploy', '--only', 'hosting', '--project', project_id],
-        cwd=output_dir,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            ['firebase', 'deploy', '--only', 'hosting', '--project', project_id],
+            cwd=output_dir,
+            capture_output=True,
+            text=True,
+            timeout=DEPLOY_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(
+            f"Firebase deploy timed out after {DEPLOY_TIMEOUT} seconds. "
+            "Check your network connection and try again."
+        )
 
     if result.returncode != 0:
-        logger.error("Deploy failed:\n%s", result.stderr)
-        sys.exit(1)
+        raise RuntimeError(f"Firebase deploy failed:\n{result.stderr}")
 
     logger.info(result.stdout)
     logger.info("Deploy complete!")
