@@ -11,6 +11,28 @@ from swb.core.deployer import (
 )
 
 
+class TestDeploySiteDispatch:
+    @patch("swb.core.deployer.deploy_firebase")
+    @patch("swb.core.deployer.load_effective_config")
+    def test_defaults_to_firebase(self, mock_config, mock_firebase, tmp_path):
+        mock_config.return_value = {"firebase_project_id": "x"}
+        deploy_site(str(tmp_path), str(tmp_path / "build"))
+        mock_firebase.assert_called_once()
+
+    @patch("swb.core.github_pages_deployer.deploy_github_pages")
+    @patch("swb.core.deployer.load_effective_config")
+    def test_dispatches_to_github_pages(self, mock_config, mock_gh, tmp_path):
+        mock_config.return_value = {"provider": "github_pages", "github_remote": "origin"}
+        deploy_site(str(tmp_path), str(tmp_path / "build"))
+        mock_gh.assert_called_once()
+
+    @patch("swb.core.deployer.load_effective_config")
+    def test_raises_on_unknown_provider(self, mock_config, tmp_path):
+        mock_config.return_value = {"provider": "s3"}
+        with pytest.raises(RuntimeError, match="Unknown deploy provider"):
+            deploy_site(str(tmp_path), str(tmp_path / "build"))
+
+
 class TestCheckFirebaseCli:
     @patch("subprocess.run")
     def test_returns_true_when_installed(self, mock_run):
@@ -67,15 +89,17 @@ class TestGenerateFirebaseJson:
 
 
 class TestDeploySite:
+    @patch("swb.core.deployer.load_effective_config")
     @patch("swb.core.deployer.check_firebase_cli")
-    def test_raises_when_firebase_not_installed(self, mock_check, tmp_path):
+    def test_raises_when_firebase_not_installed(self, mock_check, mock_config, tmp_path):
         mock_check.return_value = False
+        mock_config.return_value = {}
         with pytest.raises(RuntimeError, match="Firebase CLI"):
             deploy_site(str(tmp_path), str(tmp_path / "build"))
 
     @patch("subprocess.run")
     @patch("swb.core.deployer.check_firebase_cli")
-    @patch("swb.core.deployer.load_config")
+    @patch("swb.core.deployer.load_effective_config")
     def test_calls_firebase_deploy(self, mock_config, mock_check, mock_run, tmp_path):
         mock_check.return_value = True
         mock_config.return_value = {"firebase_project_id": "test-project"}
@@ -91,7 +115,7 @@ class TestDeploySite:
 
     @patch("subprocess.run")
     @patch("swb.core.deployer.check_firebase_cli")
-    @patch("swb.core.deployer.load_config")
+    @patch("swb.core.deployer.load_effective_config")
     def test_raises_when_no_project_configured(self, mock_config, mock_check, mock_run, tmp_path):
         mock_check.return_value = True
         mock_config.return_value = {}

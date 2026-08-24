@@ -44,8 +44,8 @@ Requires Python 3.12+ and a virtual environment.
 |---------|-------------|
 | `swb <name>` | Create a new project |
 | `swb build <dir>` | Build the static site |
-| `swb deploy <dir>` | Deploy to Firebase Hosting |
-| `swb config` | Configure Firebase credentials |
+| `swb deploy <dir>` | Deploy using the configured provider (Firebase or GitHub Pages) |
+| `swb config` | Configure deploy provider and credentials |
 | `swb --version` | Show version |
 | `swb --verbose` | Enable debug logging |
 
@@ -178,15 +178,64 @@ output:
   dir: "build"
 ```
 
-### Firebase Setup
+### Deploy Providers
+
+`swb deploy` dispatches to the provider set by the `provider` key in your
+config. Two providers are supported:
+
+#### Per-Project Config
+
+`swb config` writes to a single **global** config at `~/.swb/config.yaml`,
+shared by every swb project on the machine. That's fine if you only ever
+deploy one site — but with more than one, whichever project you last ran
+`swb config` (or deployed) from silently becomes the default for all the
+others too, which can send one project's build to another project's host.
+
+To pin a project to its own deploy target regardless of the global default,
+add an `swb.yaml` file to that project's root (sibling to `site.yaml`), in
+the same shape as the global config:
+
+```yaml
+provider: firebase
+firebase_project_id: my-actual-project-id
+domain: example.com
+```
+
+`swb deploy` merges this over the global config key by key — anything
+`swb.yaml` sets wins for this project; anything it leaves out still falls
+back to the global config. A project with no `swb.yaml` behaves exactly as
+before (global config only). `swb.yaml` is not created automatically; add it
+by hand to any project where deploying to the wrong place would be costly.
+
+#### Firebase Hosting (default)
 
 1. Install Firebase CLI: `npm install -g firebase-tools`
 2. Login: `firebase login`
 3. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
-4. Configure swb: `swb config`
+4. Configure swb: `swb config` (choose `firebase`, enter your project ID)
 5. Build and deploy: `swb build . && swb deploy .`
 
 **Custom domain:** After deploying, add a custom domain in the Firebase Console under Hosting > Add custom domain. Firebase provides free SSL certificates automatically.
+
+#### GitHub Pages
+
+No Node.js dependency — uses git only. The build output is force-pushed to a
+branch (default `gh-pages`) on a GitHub repo, which GitHub serves as the site.
+
+1. Create a GitHub repo for the site and note its remote (e.g. `git@github.com:you/site.git`)
+2. Configure swb: `swb config` (choose `github_pages`, enter the remote and branch)
+3. Build and deploy: `swb build . && swb deploy .`
+4. In the repo's **Settings > Pages**, set the source branch to your publish branch
+
+swb writes a `.nojekyll` file automatically so file-system routing (including
+paths with leading underscores) is served verbatim instead of being processed
+by Jekyll. Set a custom domain with `swb config`; swb writes it to a `CNAME`
+file on each deploy.
+
+**Trade-offs vs Firebase:** GitHub Pages gives ~10× the free monthly bandwidth
+(100 GB soft vs 10 GB enforced) and degrades gracefully when exceeded, but
+couples hosting to a GitHub repo (one site per repo) and has no atomic deploy
+or instant rollback.
 
 ## Build Output
 

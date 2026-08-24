@@ -146,7 +146,7 @@ def main():
         print("  swb <project-name>        Create a new swb project")
         print("  swb build <project-dir>   Build the static site")
         print("  swb run <project-dir>     Serve locally (--port N)")
-        print("  swb deploy <project-dir>  Deploy to Firebase Hosting")
+        print("  swb deploy <project-dir>  Deploy via configured provider")
         print("  swb config                Configure swb settings")
         print("  swb --version             Show version")
         print("  swb --verbose (-v)        Enable debug logging")

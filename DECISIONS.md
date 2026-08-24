@@ -14,6 +14,18 @@ This document records key design and implementation decisions made during develo
 
 **Rationale:** Firebase Hosting is $0/month for small sites, provides automatic HTTPS, global CDN, and custom domain support. Cloud Storage + LB costs ~$18/month minimum. Cloud Run requires container management for static files, which is architecturally wasteful.
 
+## 2026-06-28: Pluggable Deploy Providers (Firebase + GitHub Pages)
+
+**Decision:** Make the deploy step pluggable via a `provider` config key (`firebase` | `github_pages`), defaulting to Firebase. `deployer.deploy_site` is now a dispatcher; Firebase logic moved to `deploy_firebase`, and a new `github_pages_deployer` module publishes via git.
+
+**Rationale:** GitHub Pages offers ~10× the free monthly bandwidth (100 GB soft limit vs Firebase Spark's 10 GB enforced limit) and degrades gracefully instead of disabling the site, and it removes the Node.js/`firebase-tools` dependency for users already on GitHub. It is added as an *alternative* rather than a replacement because it couples hosting to a GitHub repo (one site per repo) and lacks Firebase's atomic deploy/instant rollback. Keeping both behind a provider key preserves the decoupled-deploy property for users who want it.
+
+**Implementation notes:**
+1. GitHub Pages deploy force-pushes the built dir to a branch (default `gh-pages`) from a throwaway orphan history created inside the output dir, so the source repo is untouched and remote history stays shallow.
+2. A `.nojekyll` marker is always written so GitHub Pages serves swb's file-system routing (including `_`-prefixed paths) verbatim instead of running Jekyll.
+3. A `CNAME` file is written when a custom `domain` is configured.
+4. Backward compatible: existing configs without a `provider` key continue to deploy to Firebase unchanged.
+
 ## 2026-04-01: File System Routing
 
 **Decision:** Map file system paths directly to URL routes (`contact/aboutus.md` → `/contact/aboutus`).

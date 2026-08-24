@@ -1,15 +1,55 @@
-"""Firebase Hosting deployment."""
+"""Deployment dispatch and Firebase Hosting provider.
+
+The deploy provider is selected via the ``provider`` key in the global swb
+config (default ``firebase``). Each provider is a function with the signature
+``(project_root, output_dir, config) -> None`` that raises ``RuntimeError`` on
+failure.
+"""
 
 import json
 import os
 import subprocess
 
-from swb.core.config_manager import load_config
+from swb.core.config_manager import load_effective_config
 from swb.core.logger import get_logger
 
 logger = get_logger("deployer")
 
 DEPLOY_TIMEOUT = 300  # 5 minutes
+
+DEFAULT_PROVIDER = "firebase"
+
+
+def deploy_site(project_root, output_dir):
+    """Deploy a built site using the configured provider.
+
+    Reads the ``provider`` key from this project's effective config (its own
+    ``swb.yaml``, falling back to the global ``~/.swb/config.yaml`` for
+    anything not overridden) and dispatches to the matching deployer.
+    Defaults to Firebase Hosting for backward compatibility.
+
+    Args:
+        project_root: Root directory of the swb project.
+        output_dir: Directory containing built HTML files.
+
+    Raises:
+        RuntimeError: If the provider is unknown or the deploy fails.
+    """
+    config = load_effective_config(project_root)
+    provider = config.get("provider", DEFAULT_PROVIDER)
+
+    if provider == "firebase":
+        deploy_firebase(project_root, output_dir, config)
+    elif provider == "github_pages":
+        # Imported lazily so the git-based provider has no import cost for
+        # the default Firebase path.
+        from swb.core.github_pages_deployer import deploy_github_pages
+        deploy_github_pages(project_root, output_dir, config)
+    else:
+        raise RuntimeError(
+            f"Unknown deploy provider: {provider!r}. "
+            "Set 'provider' to 'firebase' or 'github_pages' (run 'swb config')."
+        )
 
 
 def check_firebase_cli():
@@ -56,12 +96,13 @@ def generate_firebase_json(output_dir, project_id=None):
                 json.dump(rc, f, indent=2)
 
 
-def deploy_site(project_root, output_dir):
+def deploy_firebase(project_root, output_dir, config):
     """Deploy built site to Firebase Hosting.
 
     Args:
         project_root: Root directory of the swb project
         output_dir: Directory containing built HTML files
+        config: Loaded global swb config dict
 
     Raises:
         RuntimeError: If Firebase CLI is not installed, no project configured,
@@ -73,7 +114,6 @@ def deploy_site(project_root, output_dir):
             "Install it with: npm install -g firebase-tools"
         )
 
-    config = load_config()
     project_id = config.get("firebase_project_id")
     if not project_id:
         raise RuntimeError(
